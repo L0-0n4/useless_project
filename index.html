@@ -1,614 +1,311 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cloak of Invisibility</title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800&family=Cinzel+Decorative:wght@400;700&family=MedievalSharp&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
 
-<style>
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
-:root{
-    --bg:#0b0707;
-    --panel:#2d1b1b;
-    --panel-dark:#211313;
-    --gold:#d5a51e;
-    --gold-light:#e5bc43;
-    --cream:#dfd0ad;
-    --muted:#a89472;
-    --green:#78c681;
-}
+    <title>Invisibility Cloak</title>
 
-html,body{
-    width:100%;
-    min-height:100%;
-}
+    <style>
 
-body{
-    min-height:100vh;
-    overflow-x:hidden;
-    background:
-        radial-gradient(circle at 50% 20%, rgba(80,40,25,.16), transparent 28%),
-        #0b0707;
-    color:var(--cream);
-    font-family:Georgia,"Times New Roman",serif;
-}
+        * {
+            box-sizing: border-box;
+        }
 
-/* ---------------- HEADER ---------------- */
+        body {
+            margin: 0;
+            min-height: 100vh;
 
-.site{
-    width:min(100%,1100px);
-    margin:0 auto;
-    padding:34px 28px 50px;
-    position:relative;
-    z-index:2;
-}
+            display: flex;
+            justify-content: center;
+            align-items: center;
 
-.header{
-    text-align:center;
-    padding-bottom:20px;
-    border-bottom:1px solid rgba(213,165,30,.72);
-}
+            background:
+                radial-gradient(
+                    circle at center,
+                    #26304a 0%,
+                    #111827 35%,
+                    #05070d 75%,
+                    #020308 100%
+                );
 
-.brand{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:18px;
-}
+            color: #e8d9a8;
 
-.brand-icon{
-    font-size:42px;
-    line-height:1;
-    filter:drop-shadow(0 0 9px rgba(213,165,30,.7));
-}
+            font-family:
+                Georgia,
+                "Times New Roman",
+                serif;
 
-.brand-title{
-    font-family:"Cinzel Decorative",Georgia,serif;
-    font-weight:700;
-    font-size:clamp(31px,4.6vw,58px);
-    line-height:1;
-    letter-spacing:1px;
-    color:var(--gold);
-    text-transform:uppercase;
-    text-shadow:
-        0 0 6px rgba(213,165,30,.75),
-        0 0 22px rgba(213,165,30,.28);
-}
+            overflow: hidden;
+        }
 
-.tagline{
-    margin-top:18px;
-    color:#aa9674;
-    font-family:"MedievalSharp",Georgia,serif;
-    font-size:16px;
-    font-style:italic;
-}
 
-/* ---------------- MAIN CARD ---------------- */
+        /* Magical glow */
 
-.content{
-    width:100%;
-    display:flex;
-    justify-content:center;
-    margin-top:116px;
-}
+        body::before {
+            content: "";
 
-.panel{
-    width:min(100%,970px);
-    min-height:335px;
-    padding:38px 42px 30px;
-    position:relative;
-    border:1px solid rgba(213,165,30,.82);
-    border-radius:14px;
-    background:
-        linear-gradient(135deg,rgba(51,29,29,.98),rgba(38,22,22,.98));
-    box-shadow:
-        0 15px 50px rgba(0,0,0,.34),
-        inset 0 0 35px rgba(0,0,0,.17);
-}
+            position: fixed;
+            inset: 0;
 
-.panel:before,
-.panel:after{
-    content:"";
-    position:absolute;
-    width:25px;
-    height:25px;
-    border-color:var(--gold);
-    pointer-events:none;
-}
+            background:
+                radial-gradient(
+                    circle at 50% 45%,
+                    rgba(212, 175, 55, 0.12),
+                    transparent 35%
+                );
 
-.panel:before{
-    top:10px;
-    left:10px;
-    border-top:2px solid;
-    border-left:2px solid;
-    border-radius:4px 0 0 0;
-}
+            pointer-events: none;
+        }
 
-.panel:after{
-    right:10px;
-    bottom:10px;
-    border-right:2px solid;
-    border-bottom:2px solid;
-    border-radius:0 0 4px 0;
-}
 
-/* ---------------- SCREENS ---------------- */
+        /* Main magical card */
 
-.screen{display:none;}
-.screen.active{display:block;}
+        .magic-container {
 
-.screen-title{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    color:var(--gold);
-    font-family:"Cinzel",Georgia,serif;
-    font-weight:700;
-    font-size:clamp(24px,3vw,31px);
-    letter-spacing:.3px;
-    text-shadow:0 0 9px rgba(213,165,30,.35);
-}
+            width: 94%;
+            max-width: 1400px;
 
-.screen-title .spark{
-    font-size:25px;
-    filter:drop-shadow(0 0 5px rgba(255,174,66,.5));
-}
+            padding: 35px;
 
-.description{
-    margin-top:27px;
-    max-width:900px;
-    color:#e0d5bf;
-    font-family:Georgia,"Times New Roman",serif;
-    font-size:17px;
-    line-height:1.9;
-}
+            text-align: center;
 
-.status{
-    margin-top:20px;
-    color:var(--muted);
-    font-family:"MedievalSharp",Georgia,serif;
-    font-size:16px;
-    font-style:italic;
-}
+            background:
+                linear-gradient(
+                    145deg,
+                    rgba(20, 25, 40, 0.96),
+                    rgba(5, 8, 15, 0.98)
+                );
 
-.status span{
-    color:var(--gold-light);
-}
+            border: 1px solid rgba(212, 175, 55, 0.55);
 
-/* ---------------- BUTTON ---------------- */
+            border-radius: 8px;
 
-.magic-button{
-    margin-top:27px;
-    padding:14px 26px;
-    min-width:220px;
-    border:2px solid var(--gold);
-    border-radius:9px;
-    background:#120b0b;
-    color:var(--gold);
-    font-family:"Cinzel",Georgia,serif;
-    font-size:14px;
-    font-weight:700;
-    letter-spacing:.3px;
-    cursor:pointer;
-    transition:.22s ease;
-    box-shadow:0 0 0 rgba(213,165,30,0);
-}
+            box-shadow:
+                0 0 25px rgba(212, 175, 55, 0.12),
+                0 0 80px rgba(0, 0, 0, 0.8),
+                inset 0 0 40px rgba(212, 175, 55, 0.04);
+        }
 
-.magic-button:hover{
-    background:#241414;
-    transform:translateY(-2px);
-    box-shadow:
-        0 0 12px rgba(213,165,30,.45),
-        0 0 26px rgba(213,165,30,.14);
-}
 
-.magic-button:active{
-    transform:translateY(0);
-}
+        /* Decorative line */
 
-.magic-button:disabled{
-    opacity:.55;
-    cursor:not-allowed;
-    transform:none;
-    box-shadow:none;
-}
+        .ornament {
+            color: #d4af37;
 
-/* ---------------- CAMERA ---------------- */
+            font-size: 22px;
 
-.camera-box{
-    width:100%;
-    margin:27px auto 0;
-    aspect-ratio:16/9;
-    min-height:300px;
-    position:relative;
-    overflow:hidden;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    border:1px solid rgba(213,165,30,.82);
-    border-radius:10px;
-    background:#080505;
-    box-shadow:inset 0 0 35px rgba(0,0,0,.62);
-}
+            letter-spacing: 8px;
 
-.camera-placeholder{
-    color:#b8a47d;
-    font-family:"MedievalSharp",Georgia,serif;
-    font-size:21px;
-}
+            margin-bottom: 10px;
+        }
 
-.camera-feed{
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    display:block;
-    transform:scaleX(-1);
-}
 
-.camera-actions{
-    display:flex;
-    gap:12px;
-    flex-wrap:wrap;
-    align-items:center;
-}
+        h1 {
 
-.permission-note{
-    margin-top:12px;
-    color:#9c8a6c;
-    font-size:13px;
-    font-style:italic;
-}
+            margin: 5px 0 8px;
 
-/* ---------------- BACKGROUND STARS ---------------- */
+            font-size: clamp(32px, 5vw, 64px);
 
-#particles{
-    position:fixed;
-    inset:0;
-    width:100%;
-    height:100%;
-    z-index:0;
-    pointer-events:none;
-    opacity:.72;
-}
+            font-weight: normal;
 
-/* ---------------- RESPONSIVE ---------------- */
+            letter-spacing: 5px;
 
-@media(max-width:700px){
-    body{overflow-y:auto;}
+            text-transform: uppercase;
 
-    .site{
-        padding:22px 14px 30px;
-    }
+            color: #d4af37;
 
-    .brand{
-        gap:10px;
-        flex-direction:column;
-    }
+            text-shadow:
+                0 0 8px rgba(212, 175, 55, 0.5),
+                0 0 25px rgba(212, 175, 55, 0.2);
+        }
 
-    .brand-icon{
-        font-size:31px;
-    }
 
-    .brand-title{
-        font-size:30px;
-    }
+        .subtitle {
 
-    .tagline{
-        font-size:14px;
-    }
+            margin-bottom: 28px;
 
-    .content{
-        margin-top:55px;
-    }
+            color: #b9b4a4;
 
-    .panel{
-        padding:32px 20px 27px;
-    }
+            font-size: 17px;
 
-    .screen-title{
-        font-size:23px;
-    }
+            letter-spacing: 2px;
+        }
 
-    .description{
-        font-size:15px;
-        line-height:1.75;
-    }
 
-    .camera-box{
-        min-height:210px;
-    }
+        /* Video frame */
 
-    .magic-button{
-        width:100%;
-    }
-}
-</style>
+        .video-frame {
+
+            position: relative;
+
+            display: inline-block;
+
+            padding: 8px;
+
+            background: #090b12;
+
+            border: 2px solid #8f7524;
+
+            box-shadow:
+                0 0 15px rgba(212, 175, 55, 0.25),
+                inset 0 0 20px rgba(0, 0, 0, 0.8);
+        }
+
+
+        .video-frame::before,
+        .video-frame::after {
+
+            content: "✦";
+
+            position: absolute;
+
+            color: #d4af37;
+
+            font-size: 22px;
+        }
+
+
+        .video-frame::before {
+            top: -18px;
+            left: -18px;
+        }
+
+
+        .video-frame::after {
+            bottom: -18px;
+            right: -18px;
+        }
+
+
+        img {
+
+            display: block;
+
+            width: min(1280px, 88vw);
+
+            height: auto;
+
+            max-height: 72vh;
+
+            object-fit: contain;
+
+            background: #000;
+        }
+
+
+        /* Instructions */
+
+        .instructions {
+
+            margin-top: 25px;
+
+            color: #aaa58f;
+
+            font-size: 15px;
+
+            letter-spacing: 1px;
+        }
+
+
+        .instructions span {
+
+            color: #d4af37;
+
+            font-weight: bold;
+        }
+
+
+        /* Bottom decoration */
+
+        .bottom-ornament {
+
+            margin-top: 22px;
+
+            color: #8f7524;
+
+            font-size: 18px;
+
+            letter-spacing: 12px;
+        }
+
+
+        /* Responsive */
+
+        @media (max-width: 700px) {
+
+            .magic-container {
+                padding: 18px;
+            }
+
+            h1 {
+                letter-spacing: 2px;
+            }
+
+            .subtitle {
+                font-size: 13px;
+            }
+
+            img {
+                width: 100%;
+            }
+        }
+
+    </style>
+
 </head>
+
 
 <body>
 
-<canvas id="particles"></canvas>
 
-<div class="site">
+    <main class="magic-container">
 
-    <!-- HEADER: same content, redesigned to match the reference UI -->
-    <header class="header">
-        <div class="brand">
-            <div class="brand-icon">🪄</div>
-            <div class="brand-title">Cloak of Invisibility</div>
+        <div class="ornament">
+            ✦ ───── ✦
         </div>
 
-        <div class="tagline">
-            The magic begins here...
+
+        <h1>
+            Invisibility Cloak
+        </h1>
+
+
+        <div class="subtitle">
+            The magic is real. The cloak is waiting.
         </div>
-    </header>
 
-    <main class="content">
 
-        <!-- LANDING -->
-        <section id="landing" class="panel screen active">
+        <div class="video-frame">
 
-            <div class="screen-title">
-                <span class="spark">✦</span>
-                <span>Cloak of Invisibility</span>
-            </div>
+            <img
+                src="{{ url_for('video') }}"
+                alt="OpenCV Invisibility Cloak Camera"
+            >
 
-            <div class="description">
-                The magic begins here...
-            </div>
+        </div>
 
-            <button class="magic-button" onclick="showCameraScreen()">
-                ✦ ENTER THE MAGIC ✦
-            </button>
 
-        </section>
+        <div class="instructions">
 
-        <!-- CAMERA / SECOND PAGE -->
-        <section id="camera" class="panel screen">
+            <span>✦</span>
+            Step into the frame and reveal the magic
+            <span>✦</span>
 
-            <div class="screen-title">
-                <span class="spark">✦</span>
-                <span>The Cloak Awaits</span>
-            </div>
+        </div>
 
-            <div class="description">
-                The enchantment requires the sight of your camera.
-                The spell will harness your device's eye to weave
-                the illusion of chromatic disappearance.
-                <br><br>
-                No data leaves this device. All magic is cast entirely
-                within your browser — by pure pixel sorcery.
-            </div>
 
-            <div class="camera-actions">
-                <button id="grantCameraBtn" class="magic-button" onclick="requestCamera()">
-                    GRANT CAMERA ACCESS
-                </button>
-
-                <button id="activateBtn" class="magic-button" onclick="activateInvisibility()" disabled>
-                    🪄 ACTIVATE INVISIBILITY
-                </button>
-            </div>
-
-            <div id="cameraStatus" class="status">
-                Status: <span>Waiting for camera permission</span>
-            </div>
-
-            <div class="camera-box">
-                <video id="cameraVideo" class="camera-feed" autoplay playsinline muted hidden></video>
-
-                <div id="cameraPlaceholder" class="camera-placeholder">
-                    🎥 Camera Ready
-                </div>
-            </div>
-
-            <div class="permission-note">
-                Camera access is requested only by your browser and the camera feed stays on this device.
-            </div>
-
-        </section>
-
-        <!-- INVISIBILITY -->
-        <section id="invisibility" class="panel screen">
-
-            <div class="screen-title">
-                <span class="spark">✦</span>
-                <span>Invisibility Active</span>
-            </div>
-
-            <div class="camera-box">
-                <video id="liveVideo" class="camera-feed" autoplay playsinline muted hidden></video>
-
-                <div id="livePlaceholder" class="camera-placeholder">
-                    🫥 LIVE CAMERA
-                </div>
-            </div>
-
-            <div class="status">
-                <span>● INVISIBILITY ACTIVE</span>
-            </div>
-
-            <button class="magic-button" onclick="exitMagic()">
-                ✦ EXIT ✦
-            </button>
-
-        </section>
+        <div class="bottom-ornament">
+            ✦ ✦ ✦
+        </div>
 
     </main>
-</div>
 
-<script>
-/* ---------------- SCREEN NAVIGATION ---------------- */
-
-function showScreen(id){
-    document.querySelectorAll(".screen").forEach(screen=>{
-        screen.classList.remove("active");
-    });
-
-    document.getElementById(id).classList.add("active");
-}
-
-let cameraStream = null;
-
-async function showCameraScreen(){
-    showScreen("camera");
-
-    // The second page has an explicit Grant Camera Access option.
-    // Do not request permission automatically here.
-}
-
-async function requestCamera(){
-    const status = document.getElementById("cameraStatus");
-    const button = document.getElementById("grantCameraBtn");
-    const activateBtn = document.getElementById("activateBtn");
-    const video = document.getElementById("cameraVideo");
-    const placeholder = document.getElementById("cameraPlaceholder");
-
-    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-        status.innerHTML = 'Status: <span>Camera access is not supported by this browser</span>';
-        return;
-    }
-
-    try{
-        button.disabled = true;
-        button.textContent = "REQUESTING CAMERA...";
-
-        cameraStream = await navigator.mediaDevices.getUserMedia({
-            video:{
-                facingMode:"user"
-            },
-            audio:false
-        });
-
-        video.srcObject = cameraStream;
-        video.hidden = false;
-        placeholder.hidden = true;
-
-        status.innerHTML = 'Status: <span>Camera ready</span>';
-
-        button.textContent = "CAMERA ACCESS GRANTED";
-        activateBtn.disabled = false;
-
-    }catch(error){
-        console.warn("Camera permission was not granted:", error);
-
-        button.disabled = false;
-        button.textContent = "GRANT CAMERA ACCESS";
-
-        status.innerHTML = 'Status: <span>Camera permission not granted</span>';
-    }
-}
-
-function activateInvisibility(){
-    if(!cameraStream){
-        requestCamera();
-        return;
-    }
-
-    const liveVideo = document.getElementById("liveVideo");
-    const livePlaceholder = document.getElementById("livePlaceholder");
-
-    liveVideo.srcObject = cameraStream;
-    liveVideo.hidden = false;
-    livePlaceholder.hidden = true;
-
-    showScreen("invisibility");
-}
-
-function exitMagic(){
-    if(cameraStream){
-        cameraStream.getTracks().forEach(track=>track.stop());
-        cameraStream = null;
-    }
-
-    const cameraVideo = document.getElementById("cameraVideo");
-    const liveVideo = document.getElementById("liveVideo");
-
-    cameraVideo.srcObject = null;
-    liveVideo.srcObject = null;
-
-    cameraVideo.hidden = true;
-    liveVideo.hidden = true;
-
-    document.getElementById("cameraPlaceholder").hidden = false;
-    document.getElementById("livePlaceholder").hidden = false;
-
-    const grant = document.getElementById("grantCameraBtn");
-    const activate = document.getElementById("activateBtn");
-
-    grant.disabled = false;
-    grant.textContent = "GRANT CAMERA ACCESS";
-    activate.disabled = true;
-
-    document.getElementById("cameraStatus").innerHTML =
-        'Status: <span>Waiting for camera permission</span>';
-
-    showScreen("landing");
-}
-
-/* ---------------- MAGICAL PARTICLES ---------------- */
-
-const canvas = document.getElementById("particles");
-const ctx = canvas.getContext("2d");
-let particles = [];
-
-function resizeCanvas(){
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
-
-window.addEventListener("resize",resizeCanvas);
-resizeCanvas();
-
-function createParticles(){
-    particles=[];
-
-    const count=75;
-
-    for(let i=0;i<count;i++){
-        particles.push({
-            x:Math.random()*canvas.width,
-            y:Math.random()*canvas.height,
-            size:Math.random()*1.6+.5,
-            speed:Math.random()*.32+.06,
-            opacity:Math.random()*.5+.12
-        });
-    }
-}
-
-createParticles();
-
-function animateParticles(){
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-
-    particles.forEach(p=>{
-        p.y-=p.speed;
-
-        if(p.y<0){
-            p.y=canvas.height;
-            p.x=Math.random()*canvas.width;
-        }
-
-        ctx.beginPath();
-        ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
-        ctx.fillStyle=`rgba(213,165,30,${p.opacity})`;
-        ctx.fill();
-    });
-
-    requestAnimationFrame(animateParticles);
-}
-
-animateParticles();
-</script>
 
 </body>
+
 </html>
