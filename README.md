@@ -104,6 +104,7 @@ The workflow begins by capturing the background through the webcam. The system t
 
 ## Team Contributions
 E P Sreenanda: Contributed to the overall project development, including the computer vision implementation, background capture, testing, and integration.
+
 Elizabeth Sebastian:  Designed and developed the magical-themed user interface and contributed to the overall project development, testing, and integration.
 
 ---
