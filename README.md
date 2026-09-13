@@ -53,14 +53,21 @@ OpenCV – Used for real-time video processing, color detection, masking, and ba
 NumPy – Used for image and pixel-level array operations.
 
 # Screenshots (Add at least 3)
-![Screenshot1](Add screenshot 1 here with proper name)
-*Add caption explaining what this shows*
+<img width="1600" height="722" alt="WhatsApp Image 2026-09-13 at 4 24 13 PM" src="https://github.com/user-attachments/assets/214ce824-da93-4b27-8092-854a037c65bd" />
+Project User Interface
 
-![Screenshot2](Add screenshot 2 here with proper name)
-*Add caption explaining what this shows*
+The magical-themed Invisibility Cloak interface provides a dedicated display area for the OpenCV camera feed and presents the project in an interactive, visually appealing format.
 
-![Screenshot3](Add screenshot 3 here with proper name)
-*Add caption explaining what this shows*
+<img width="1593" height="817" alt="WhatsApp Image 2026-09-13 at 4 24 13 PM (1)" src="https://github.com/user-attachments/assets/2c2c5944-cb27-47e5-af72-6a4bfedf643d" />
+
+Live Camera Input
+
+The live webcam feed captures the user and the surrounding environment before applying the invisibility effect.
+
+<img width="1600" height="715" alt="WhatsApp Image 2026-09-13 at 4 24 13 PM (2)" src="https://github.com/user-attachments/assets/190e6b7d-906b-4814-badf-74746d5c6ef9" />
+Invisibility Effect
+
+The red cloak is detected and replaced with the previously captured background, creating the illusion that the cloak and the covered area have disappeared.
 
 # Diagrams
         ┌──────────────┐
