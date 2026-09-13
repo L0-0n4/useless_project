@@ -14,7 +14,7 @@
 - Member 2: E P Sreenanda - MACE
 
 ### Project Description
-[2-3 lines about what your project does]
+Cloak of Invisibility is a real-time computer vision project built with Python and OpenCV that creates an invisibility effect by detecting a red cloak. The system captures the background at the beginning and uses it to replace the detected cloak area, making the person appear invisible.
 
 ### The Problem (that doesn't exist)
 [What ridiculous problem are you solving?]
