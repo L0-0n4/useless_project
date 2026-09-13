@@ -17,7 +17,7 @@
 Cloak of Invisibility is a real-time computer vision project built with Python and OpenCV that creates an invisibility effect by detecting a red cloak. The system captures the background at the beginning and uses it to replace the detected cloak area, making the person appear invisible.
 
 ### The Problem (that doesn't exist)
-[What ridiculous problem are you solving?]
+People are constantly worried about being seen when they could simply become invisible. Our project solves this completely unnecessary problem by using computer vision to make anyone wearing a red cloak magically disappear from the camera view.
 
 ### The Solution (that nobody asked for)
 [How are you solving it? Keep it fun!]
