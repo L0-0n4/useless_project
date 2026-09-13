@@ -1,1 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <title>The Invisibility Cloak</title>
+
+    <!-- OpenCV.js -->
+    <script async
+        src="https://docs.opencv.org/4.x/opencv.js"
+        onload="openCVReady()">
+    </script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at center, #302000 0%, #100b04 45%, #050403 100%);
+            color: #d8b45a;
+            font-family: Georgia, "Times New Roman", serif;
+            text-align: center;
+        }
+
+        header {
+            padding: 28px 20px 10px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 42px;
+            letter-spacing: 3px;
+            text-shadow: 0 0 15px rgba(216, 180, 90, 0.5);
+        }
+
+        .subtitle {
+            margin-top: 8px;
+            color: #c9c9c9;
+            font-size: 16px;
+            letter-spacing: 1px;
+        }
+
+        .container {
+            width: min(1100px, 94%);
+            margin: 20px auto;
+        }
+
+        .magic-frame {
+            position: relative;
+            background: #080706;
+            border: 2px solid #b89445;
+            border-radius: 14px;
+            padding: 12px;
+            box-shadow:
+                0 0 25px rgba(216, 180, 90, 0.25),
+                inset 0 0 30px rgba(216, 180, 90, 0.08);
+        }
+
+        canvas {
+            width: 100%;
+            display: block;
+            border-radius: 8px;
+            background: black;
+        }
+
+        #video {
+            display: none;
+        }
+
+        .status {
+            margin: 15px auto;
+            padding: 12px 20px;
+            width: fit-content;
+            max-width: 90%;
+            border: 1px solid #8d6b2f;
+            border-radius: 8px;
+            color: #eee;
+            background: rgba(0, 0, 0, 0.55);
+        }
+
+        button {
+            border: 1px solid #d8b45a;
+            background: linear-gradient(#6e5220, #2e210b);
+            color: #f4df9b;
+            padding: 13px 28px;
+            margin: 8px;
+            border-radius: 8px;
+            font-family: Georgia, serif;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: linear-gradient(#8a6928, #40300e);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .instructions {
+            margin: 20px auto;
+            max-width: 700px;
+            color: #bbb;
+            line-height: 1.6;
+        }
+
+        .footer {
+            padding: 20px;
+            color: #6f6f6f;
+            font-size: 13px;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>⚡ THE INVISIBILITY CLOAK ⚡</h1>
+    <div class="subtitle">
+        Mischief Managed — Red Cloak Detection
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="magic-frame">
+
+        <video
+            id="video"
+            autoplay
+            playsinline>
+        </video>
+
+        <canvas
+            id="canvas"
+            width="640"
+            height="360">
+        </canvas>
+
+    </div>
+
+    <div id="status" class="status">
+        Loading magical vision...
+    </div>
+
+    <button id="startButton" disabled>
+        Start Camera
+    </button>
+
+    <button id="backgroundButton" disabled>
+        Capture Background
+    </button>
+
+    <div class="instructions">
+        <b>How to use:</b><br>
+        1. Start the camera.<br>
+        2. Move completely out of the camera view.<br>
+        3. Capture the background.<br>
+        4. Put on the red/maroon cloak and enter the frame.<br>
+        5. The cloak should disappear.
+    </div>
+
+</div>
+
+<div class="footer">
+    OpenCV.js • Browser-based computer vision
+</div>
+
+
+<script>
+
+let cvReady = false;
+let cameraStarted = false;
+let backgroundCaptured = false;
+
+let video;
+let canvas;
+let ctx;
+
+let backgroundMat = null;
+
+const WIDTH = 640;
+const HEIGHT = 360;
+
+
+/* ============================================================
+   OPENCV READY
+   ============================================================ */
+
+function openCVReady() {
+
+    cvReady = true;
+
+    document.getElementById("status").innerText =
+        "OpenCV ready. Start the camera.";
+
+    document.getElementById("startButton").disabled = false;
+
+    console.log("OpenCV.js loaded.");
+}
+
+
+/* ============================================================
+   START CAMERA
+   ============================================================ */
+
+async function startCamera() {
+
+    if (!cvReady) {
+        alert("OpenCV is still loading.");
+        return;
+    }
+
+    video = document.getElementById("video");
+    canvas = document.getElementById("canvas");
+    ctx = canvas.getContext("2d", {
+        willReadFrequently: true
+    });
+
+    try {
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                width: {
+                    ideal: 1280
+                },
+                height: {
+                    ideal: 720
+                },
+                facingMode: "user"
+            },
+            audio: false
+        });
+
+        video.srcObject = stream;
+
+        await video.play();
+
+        cameraStarted = true;
+
+        document.getElementById("status").innerText =
+            "Camera ready. Move out of the frame and capture the background.";
+
+        document.getElementById("backgroundButton").disabled = false;
+
+        processVideo();
+
+    } catch (error) {
+
+        console.error(error);
+
+        document.getElementById("status").innerText =
+            "Camera permission was denied or the camera is unavailable.";
+
+    }
+}
+
+
+/* ============================================================
+   CAPTURE BACKGROUND
+   ============================================================ */
+
+function captureBackground() {
+
+    if (!cameraStarted) {
+        return;
+    }
+
+    ctx.drawImage(
+        video,
+        0,
+        0,
+        WIDTH,
+        HEIGHT
+    );
+
+    if (backgroundMat !== null) {
+        backgroundMat.delete();
+    }
+
+    backgroundMat = cv.imread(canvas);
+
+    backgroundCaptured = true;
+
+    document.getElementById("status").innerText =
+        "Background captured. Put on the red cloak and enter the frame.";
+
+    console.log("Background captured.");
+}
+
+
+/* ============================================================
+   RGB → HSV
+   ============================================================ */
+
+function createRedMask(src) {
+
+    let hsv = new cv.Mat();
+
+    cv.cvtColor(
+        src,
+        hsv,
+        cv.COLOR_RGBA2RGB
+    );
+
+    cv.cvtColor(
+        hsv,
+        hsv,
+        cv.COLOR_RGB2HSV
+    );
+
+    let red1 = new cv.Mat();
+    let red2 = new cv.Mat();
+
+    /*
+        Normal red
+        H = 0–12
+    */
+
+    cv.inRange(
+        hsv,
+        new cv.Mat(
+            hsv.rows,
+            hsv.cols,
+            hsv.type(),
+            [0, 65, 20, 0]
+        ),
+        new cv.Mat(
+            hsv.rows,
+            hsv.cols,
+            hsv.type(),
+            [12, 255, 255, 255]
+        ),
+        red1
+    );
+
+    /*
+        Red at the other end of HSV
+        H = 160–179
+    */
+
+    cv.inRange(
+        hsv,
+        new cv.Mat(
+            hsv.rows,
+            hsv.cols,
+            hsv.type(),
+            [160, 65, 20, 0]
+        ),
+        new cv.Mat(
+            hsv.rows,
+            hsv.cols,
+            hsv.type(),
+            [179, 255, 255, 255]
+        ),
+        red2
+    );
+
+    let redMask = new cv.Mat();
+
+    cv.bitwise_or(
+        red1,
+        red2,
+        redMask
+    );
+
+    red1.delete();
+    red2.delete();
+    hsv.delete();
+
+    return redMask;
+}
+
+
+/* ============================================================
+   SKIN MASK
+   ============================================================ */
+
+function createSkinMask(src) {
+
+    /*
+       Convert RGB image to YCrCb.
+
+       These values are adapted from
+       your Python implementation.
+    */
+
+    let ycrcb = new cv.Mat();
+
+    cv.cvtColor(
+        src,
+        ycrcb,
+        cv.COLOR_RGBA2RGB
+    );
+
+    cv.cvtColor(
+        ycrcb,
+        ycrcb,
+        cv.COLOR_RGB2YCrCb
+    );
+
+    let channels = new cv.MatVector();
+
+    cv.split(
+        ycrcb,
+        channels
+    );
+
+    let y = channels.get(0);
+    let cr = channels.get(1);
+    let cb = channels.get(2);
+
+    let skin = new cv.Mat.zeros(
+        src.rows,
+        src.cols,
+        cv.CV_8UC1
+    );
+
+    /*
+       Pixel-by-pixel skin detection.
+
+       This approximates:
+
+       cr 133–173
+       cb 77–135
+       y >= 45
+    */
+
+    for (let row = 0; row < src.rows; row++) {
+
+        for (let col = 0; col < src.cols; col++) {
+
+            const Y = y.ucharAt(row, col);
+            const CR = cr.ucharAt(row, col);
+            const CB = cb.ucharAt(row, col);
+
+            if (
+                CR >= 133 &&
+                CR <= 173 &&
+                CB >= 77 &&
+                CB <= 135 &&
+                Y >= 45
+            ) {
+
+                skin.ucharPtr(row, col)[0] = 255;
+            }
+        }
+    }
+
+    /*
+       Expand skin slightly.
+    */
+
+    let kernel = cv.Mat.ones(
+        9,
+        9,
+        cv.CV_8U
+    );
+
+    cv.dilate(
+        skin,
+        skin,
+        kernel
+    );
+
+    kernel.delete();
+
+    y.delete();
+    cr.delete();
+    cb.delete();
+    channels.delete();
+    ycrcb.delete();
+
+    return skin;
+}
+
+
+/* ============================================================
+   RED DOMINANCE
+   ============================================================ */
+
+function createRedDominanceMask(src) {
+
+    let rgb = new cv.Mat();
+
+    cv.cvtColor(
+        src,
+        rgb,
+        cv.COLOR_RGBA2RGB
+    );
+
+    let channels = new cv.MatVector();
+
+    cv.split(
+        rgb,
+        channels
+    );
+
+    let r = channels.get(0);
+    let g = channels.get(1);
+    let b = channels.get(2);
+
+    let mask = new cv.Mat.zeros(
+        src.rows,
+        src.cols,
+        cv.CV_8UC1
+    );
+
+    for (let row = 0; row < src.rows; row++) {
+
+        for (let col = 0; col < src.cols; col++) {
+
+            /*
+                OpenCV RGB channels:
+                0 = R
+                1 = G
+                2 = B
+            */
+
+            const R = r.ucharAt(row, col);
+            const G = g.ucharAt(row, col);
+            const B = b.ucharAt(row, col);
+
+            if (
+                R > G + 20 &&
+                R > B + 5
+            ) {
+
+                mask.ucharPtr(row, col)[0] = 255;
+            }
+        }
+    }
+
+    r.delete();
+    g.delete();
+    b.delete();
+
+    channels.delete();
+    rgb.delete();
+
+    return mask;
+}
+
+
+/* ============================================================
+   CLEAN MASK
+   ============================================================ */
+
+function cleanMask(mask) {
+
+    /*
+       OPEN
+    */
+
+    let openKernel = cv.getStructuringElement(
+        cv.MORPH_ELLIPSE,
+        new cv.Size(5, 5)
+    );
+
+    cv.morphologyEx(
+        mask,
+        mask,
+        cv.MORPH_OPEN,
+        openKernel
+    );
+
+    openKernel.delete();
+
+
+    /*
+       CLOSE
+    */
+
+    let closeKernel = cv.getStructuringElement(
+        cv.MORPH_ELLIPSE,
+        new cv.Size(17, 17)
+    );
+
+    cv.morphologyEx(
+        mask,
+        mask,
+        cv.MORPH_CLOSE,
+        closeKernel,
+        new cv.Point(-1, -1),
+        2
+    );
+
+    closeKernel.delete();
+
+
+    /*
+       Find connected components.
+    */
+
+    let labels = new cv.Mat();
+    let stats = new cv.Mat();
+    let centroids = new cv.Mat();
+
+    const numberOfLabels =
+        cv.connectedComponentsWithStats(
+            mask,
+            labels,
+            stats,
+            centroids,
+            8,
+            cv.CV_32S
+        );
+
+
+    let largestArea = 0;
+    let largestLabel = 0;
+
+
+    for (
+        let i = 1;
+        i < numberOfLabels;
+        i++
+    ) {
+
+        const area =
+            stats.intAt(
+                i,
+                cv.CC_STAT_AREA
+            );
+
+        if (area > largestArea) {
+
+            largestArea = area;
+            largestLabel = i;
+        }
+    }
+
+
+    let clean = new cv.Mat.zeros(
+        mask.rows,
+        mask.cols,
+        cv.CV_8UC1
+    );
+
+
+    /*
+       Keep only sufficiently large cloak.
+    */
+
+    if (largestArea > 3000) {
+
+        for (
+            let row = 0;
+            row < labels.rows;
+            row++
+        ) {
+
+            for (
+                let col = 0;
+                col < labels.cols;
+                col++
+            ) {
+
+                if (
+                    labels.intAt(
+                        row,
+                        col
+                    ) === largestLabel
+                ) {
+
+                    clean.ucharPtr(
+                        row,
+                        col
+                    )[0] = 255;
+                }
+            }
+        }
+    }
+
+
+    labels.delete();
+    stats.delete();
+    centroids.delete();
+
+    return clean;
+}
+
+
+/* ============================================================
+   PROCESS FRAME
+   ============================================================ */
+
+function processFrame() {
+
+    /*
+       Draw webcam into canvas.
+    */
+
+    ctx.drawImage(
+        video,
+        0,
+        0,
+        WIDTH,
+        HEIGHT
+    );
+
+
+    /*
+       Read current frame.
+    */
+
+    let frame = cv.imread(canvas);
+
+
+    /*
+       RED HSV MASK
+    */
+
+    let redMask =
+        createRedMask(frame);
+
+
+    /*
+       SKIN MASK
+    */
+
+    let skinMask =
+        createSkinMask(frame);
+
+
+    /*
+       Remove skin from red mask.
+    */
+
+    cv.bitwise_not(
+        skinMask,
+        skinMask
+    );
+
+    cv.bitwise_and(
+        redMask,
+        skinMask,
+        redMask
+    );
+
+
+    /*
+       RED DOMINANCE
+    */
+
+    let dominance =
+        createRedDominanceMask(frame);
+
+
+    /*
+       Add strong red pixels.
+    */
+
+    cv.bitwise_or(
+        redMask,
+        dominance,
+        redMask
+    );
+
+
+    dominance.delete();
+
+
+    /*
+       CLEAN MASK
+    */
+
+    let clean =
+        cleanMask(redMask);
+
+    redMask.delete();
+
+
+    /*
+       Smooth edges.
+    */
+
+    cv.GaussianBlur(
+        clean,
+        clean,
+        new cv.Size(7, 7),
+        0
+    );
+
+
+    /*
+       Replace cloak with background.
+    */
+
+    if (backgroundCaptured) {
+
+        /*
+           Ensure background has same dimensions.
+        */
+
+        if (
+            backgroundMat.rows === frame.rows &&
+            backgroundMat.cols === frame.cols
+        ) {
+
+            /*
+               Blend:
+
+               result =
+               foreground * (1-alpha)
+               +
+               background * alpha
+            */
+
+            let result = new cv.Mat();
+
+            let maskFloat = new cv.Mat();
+
+            clean.convertTo(
+                maskFloat,
+                cv.CV_32FC1,
+                1 / 255
+            );
+
+
+            /*
+               Create 3-channel mask.
+            */
+
+            let maskChannels = new cv.MatVector();
+
+            maskChannels.push_back(maskFloat);
+            maskChannels.push_back(maskFloat);
+            maskChannels.push_back(maskFloat);
+
+            let mask3 = new cv.Mat();
+
+            cv.merge(
+                maskChannels,
+                mask3
+            );
+
+
+            /*
+               Convert images to float.
+            */
+
+            let frameFloat = new cv.Mat();
+            let backgroundFloat = new cv.Mat();
+
+            frame.convertTo(
+                frameFloat,
+                cv.CV_32FC3
+            );
+
+            backgroundMat.convertTo(
+                backgroundFloat,
+                cv.CV_32FC3
+            );
+
+
+            /*
+               foreground * (1-alpha)
+            */
+
+            let inverseMask =
+                new cv.Mat(
+                    mask3.rows,
+                    mask3.cols,
+                    mask3.type(),
+                    new cv.Scalar(
+                        1,
+                        1,
+                        1,
+                        1
+                    )
+                );
+
+            cv.subtract(
+                inverseMask,
+                mask3,
+                inverseMask
+            );
+
+
+            let foregroundPart =
+                new cv.Mat();
+
+            let backgroundPart =
+                new cv.Mat();
+
+
+            cv.multiply(
+                frameFloat,
+                inverseMask,
+                foregroundPart
+            );
+
+
+            cv.multiply(
+                backgroundFloat,
+                mask3,
+                backgroundPart
+            );
+
+
+            cv.add(
+                foregroundPart,
+                backgroundPart,
+                result
+            );
+
+
+            result.convertTo(
+                result,
+                cv.CV_8UC3
+            );
+
+
+            /*
+               Show result.
+            */
+
+            cv.imshow(
+                canvas,
+                result
+            );
+
+
+            /*
+               Free memory.
+            */
+
+            maskFloat.delete();
+            maskChannels.delete();
+            mask3.delete();
+
+            frameFloat.delete();
+            backgroundFloat.delete();
+
+            inverseMask.delete();
+
+            foregroundPart.delete();
+            backgroundPart.delete();
+
+            result.delete();
+        }
+    }
+
+
+    /*
+       Cleanup.
+    */
+
+    frame.delete();
+    skinMask.delete();
+    clean.delete();
+
+
+    /*
+       Continue processing.
+    */
+
+    requestAnimationFrame(
+        processFrame
+    );
+}
+
+
+/* ============================================================
+   VIDEO LOOP
+   ============================================================ */
+
+function processVideo() {
+
+    if (!cameraStarted) {
+        return;
+    }
+
+    requestAnimationFrame(
+        processFrame
+    );
+}
+
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+document
+    .getElementById("startButton")
+    .addEventListener(
+        "click",
+        startCamera
+    );
+
+
+document
+    .getElementById("backgroundButton")
+    .addEventListener(
+        "click",
+        captureBackground
+    );
+
+</script>
+
+</body>
+</html>
