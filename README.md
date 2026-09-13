@@ -2,17 +2,16 @@
 
 
 
-# [Project Name] 🎯
+# Invisibilty Cloak 🎯
 
 
 ## Basic Details
-### Team Name: [Name]
+### Team Name: 23/24
 
 
 ### Team Members
-- Team Lead: [Name] - [College]
-- Member 2: [Name] - [College]
-- Member 3: [Name] - [College]
+- Team Lead: Elizabeth Sebastian - MACE
+- Member 2: E P Sreenanda - MACE
 
 ### Project Description
 [2-3 lines about what your project does]
