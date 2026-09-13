@@ -1,9 +1,10 @@
 import cv2
 import numpy as np
 
-# -----------------------------------
+
+# ============================================================
 # CAMERA
-# -----------------------------------
+# ============================================================
 
 cap = cv2.VideoCapture(0)
 
@@ -12,28 +13,41 @@ if not cap.isOpened():
     exit()
 
 
-# -----------------------------------
-# BACKGROUND SETTINGS
-# -----------------------------------
+# ============================================================
+# CAMERA RESOLUTION
+# ============================================================
+
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+
+
+# ============================================================
+# BACKGROUND
+# ============================================================
+
+warmup_frames = 75
 
 background = None
-
-# Background learning speed
-alpha = 0.05
-
-
-# -----------------------------------
-# RED CLOAK SETTINGS
-# -----------------------------------
-
-hue_tolerance = 10
-min_saturation = 120
-min_value = 60
+frame_count = 0
+background_ready = False
 
 
-# -----------------------------------
+# ============================================================
+# CLOAK DETECTION SETTINGS
+# ============================================================
+
+# HSV settings
+MIN_SATURATION = 65
+MIN_VALUE = 20
+
+
+# Minimum size of detected cloak
+MIN_CLOAK_AREA = 3000
+
+
+# ============================================================
 # MAIN LOOP
-# -----------------------------------
+# ============================================================
 
 while True:
 
@@ -43,15 +57,17 @@ while True:
         print("Error: Could not read frame")
         break
 
+
+    # --------------------------------------------------------
     # Mirror camera
+    # --------------------------------------------------------
+
     frame = cv2.flip(frame, 1)
 
-    current = frame.astype(np.float32)
 
-
-    # -----------------------------------
-    # CREATE RED CLOAK MASK
-    # -----------------------------------
+    # --------------------------------------------------------
+    # HSV
+    # --------------------------------------------------------
 
     hsv = cv2.cvtColor(
         frame,
@@ -61,116 +77,469 @@ while True:
     h, s, v = cv2.split(hsv)
 
 
-    # -----------------------------------
-    # RED DETECTION
-    # -----------------------------------
+    # ========================================================
+    # RED / MAROON DETECTION
+    # ========================================================
 
-    red_lower = (
-        (h <= hue_tolerance) &
-        (s > min_saturation) &
-        (v > min_value)
+    # Normal red
+    red1 = cv2.inRange(
+        hsv,
+        np.array([0, MIN_SATURATION, MIN_VALUE]),
+        np.array([12, 255, 255])
     )
 
-    red_upper = (
-        (h >= 180 - hue_tolerance) &
-        (s > min_saturation) &
-        (v > min_value)
+
+    # Dark/magenta red
+    red2 = cv2.inRange(
+        hsv,
+        np.array([160, MIN_SATURATION, MIN_VALUE]),
+        np.array([179, 255, 255])
     )
 
-    mask = red_lower | red_upper
 
-    mask = mask.astype(np.uint8) * 255
+    red_mask = cv2.bitwise_or(
+        red1,
+        red2
+    )
 
 
-    # -----------------------------------
-    # CLEAN MASK
-    # -----------------------------------
+    # ========================================================
+    # YCrCb SKIN DETECTION
+    # ========================================================
 
-    kernel = np.ones((3, 3), np.uint8)
+    ycrcb = cv2.cvtColor(
+        frame,
+        cv2.COLOR_BGR2YCrCb
+    )
 
-    mask = cv2.erode(
-        mask,
-        kernel,
+    y, cr, cb = cv2.split(ycrcb)
+
+
+    # --------------------------------------------------------
+    # Human skin range
+    # --------------------------------------------------------
+
+    skin = (
+        (cr >= 133) &
+        (cr <= 173) &
+        (cb >= 77) &
+        (cb <= 135) &
+        (y >= 45)
+    )
+
+
+    skin = (
+        skin.astype(np.uint8) * 255
+    )
+
+
+    # --------------------------------------------------------
+    # Expand skin slightly
+    # --------------------------------------------------------
+
+    skin_kernel = np.ones(
+        (9, 9),
+        np.uint8
+    )
+
+    skin = cv2.dilate(
+        skin,
+        skin_kernel,
         iterations=1
     )
 
-    mask = cv2.dilate(
+
+    # ========================================================
+    # REMOVE SKIN FROM RED MASK
+    # ========================================================
+
+    mask = cv2.bitwise_and(
+        red_mask,
+        cv2.bitwise_not(skin)
+    )
+
+
+    # ========================================================
+    # EXTRA RED DOMINANCE
+    # ========================================================
+
+    b, g, r = cv2.split(frame)
+
+    r16 = r.astype(np.int16)
+    g16 = g.astype(np.int16)
+    b16 = b.astype(np.int16)
+
+
+    # Strong red pixels
+    red_dominant = (
+        (r16 > g16 + 20) &
+        (r16 > b16 + 5) &
+        (s.astype(np.int16) > 65)
+    )
+
+
+    red_dominant = (
+        red_dominant.astype(np.uint8) * 255
+    )
+
+
+    # Remove skin from this mask too
+    red_dominant = cv2.bitwise_and(
+        red_dominant,
+        cv2.bitwise_not(skin)
+    )
+
+
+    # Add to main mask
+    mask = cv2.bitwise_or(
         mask,
-        kernel,
+        red_dominant
+    )
+
+
+    # ========================================================
+    # REMOVE SKIN ONE FINAL TIME
+    # ========================================================
+
+    mask = cv2.bitwise_and(
+        mask,
+        cv2.bitwise_not(skin)
+    )
+
+
+    # ========================================================
+    # MORPHOLOGICAL CLEANING
+    # ========================================================
+
+    # Remove tiny noise
+    kernel_open = cv2.getStructuringElement(
+        cv2.MORPH_ELLIPSE,
+        (5, 5)
+    )
+
+    mask = cv2.morphologyEx(
+        mask,
+        cv2.MORPH_OPEN,
+        kernel_open,
         iterations=1
     )
 
 
-    # -----------------------------------
-    # REMOVE SMALL REGIONS
-    # -----------------------------------
+    # ========================================================
+    # CONNECT CLOAK PIECES
+    # ========================================================
 
-    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(
-        mask,
-        connectivity=8
+    # Large kernel because the cloak has dark areas,
+    # shadows and small holes.
+    kernel_close = cv2.getStructuringElement(
+        cv2.MORPH_ELLIPSE,
+        (17, 17)
     )
 
-    clean_mask = np.zeros_like(mask)
+    mask = cv2.morphologyEx(
+        mask,
+        cv2.MORPH_CLOSE,
+        kernel_close,
+        iterations=3
+    )
+
+
+    # ========================================================
+    # FIND CONNECTED COMPONENTS
+    # ========================================================
+
+    num_labels, labels, stats, centroids = (
+        cv2.connectedComponentsWithStats(
+            mask,
+            connectivity=8
+        )
+    )
+
+
+    # ========================================================
+    # KEEP ONLY THE LARGEST RED OBJECT
+    # ========================================================
+
+    largest_area = 0
+    largest_label = 0
 
     for i in range(1, num_labels):
 
-        area = stats[i, cv2.CC_STAT_AREA]
+        area = stats[
+            i,
+            cv2.CC_STAT_AREA
+        ]
 
-        if area > 500:
-            clean_mask[labels == i] = 255
+        if area > largest_area:
+
+            largest_area = area
+            largest_label = i
+
+
+    clean_mask = np.zeros_like(mask)
+
+
+    if largest_area > MIN_CLOAK_AREA:
+
+        clean_mask[
+            labels == largest_label
+        ] = 255
+
 
     mask = clean_mask
 
 
-    # -----------------------------------
-    # INITIALIZE BACKGROUND
-    # -----------------------------------
+    # ========================================================
+    # FILL HOLES INSIDE CLOAK
+    # ========================================================
 
-    if background is None:
-
-        background = current.copy()
-
-        print("Background initialized automatically.")
-
-
-    # -----------------------------------
-    # UPDATE BACKGROUND
-    # -----------------------------------
-
-    # Only learn pixels that aren't red cloak
-
-    non_cloak = mask == 0
-
-    background[non_cloak] = (
-        0.95 * background[non_cloak]
-        + 0.05 * current[non_cloak]
+    # Find contours
+    contours, hierarchy = cv2.findContours(
+        mask,
+        cv2.RETR_EXTERNAL,
+        cv2.CHAIN_APPROX_SIMPLE
     )
 
 
-    # -----------------------------------
-    # CREATE INVISIBILITY EFFECT
-    # -----------------------------------
+    filled_mask = np.zeros_like(mask)
 
-    background_display = np.clip(
-        background,
+
+    if len(contours) > 0:
+
+        # Largest contour
+        largest_contour = max(
+            contours,
+            key=cv2.contourArea
+        )
+
+        area = cv2.contourArea(
+            largest_contour
+        )
+
+
+        if area > MIN_CLOAK_AREA:
+
+            cv2.drawContours(
+                filled_mask,
+                [largest_contour],
+                -1,
+                255,
+                thickness=cv2.FILLED
+            )
+
+
+    mask = filled_mask
+
+
+   # ========================================================
+# EXPAND MASK TO REMOVE RED OUTLINE
+# ========================================================
+
+# Expand the mask outward so the actual red border
+# is also covered by the background.
+
+    expand_kernel = cv2.getStructuringElement(
+        cv2.MORPH_ELLIPSE,
+        (21, 21)
+    )
+
+    mask = cv2.dilate(
+        mask,
+        expand_kernel,
+        iterations=2
+    )
+
+
+# ========================================================
+# SMOOTH EDGES
+# ========================================================
+
+    mask = cv2.GaussianBlur(
+        mask,
+        (7, 7),
+        0
+    )
+
+
+    # ========================================================
+    # BACKGROUND WARM-UP
+    # ========================================================
+
+    if not background_ready:
+
+        current = frame.astype(
+            np.float32
+        )
+
+
+        if background is None:
+
+            background = current.copy()
+
+        else:
+
+            background = (
+                0.90 * background +
+                0.10 * current
+            )
+
+
+        frame_count += 1
+
+
+        # ----------------------------------------------------
+        # Warmup display
+        # ----------------------------------------------------
+
+        result = frame.copy()
+
+
+        cv2.putText(
+            result,
+            "Preparing background...",
+            (30, 50),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (255, 255, 255),
+            2
+        )
+
+
+        cv2.putText(
+            result,
+            "Please stay out of the camera view",
+            (30, 90),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.7,
+            (255, 255, 255),
+            2
+        )
+
+
+        remaining = (
+            warmup_frames -
+            frame_count
+        )
+
+
+        cv2.putText(
+            result,
+            f"Frames remaining: {max(remaining, 0)}",
+            (30, 125),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.7,
+            (255, 255, 255),
+            2
+        )
+
+
+        # Display
+        cv2.imshow(
+            "Red Invisibility Cloak",
+            result
+        )
+
+
+        cv2.imshow(
+            "Red Cloak Mask",
+            mask
+        )
+
+
+        # ----------------------------------------------------
+        # Freeze background
+        # ----------------------------------------------------
+
+        if frame_count >= warmup_frames:
+
+            background = np.clip(
+                background,
+                0,
+                255
+            ).astype(np.uint8)
+
+            background_ready = True
+
+            print(
+                "Background captured and frozen."
+            )
+
+            print(
+                "You can now enter the camera view."
+            )
+
+
+        # ----------------------------------------------------
+        # Exit
+        # ----------------------------------------------------
+
+        key = cv2.waitKey(1) & 0xFF
+
+        if key == ord('q'):
+            break
+
+        continue
+
+
+    # ========================================================
+    # INVISIBILITY EFFECT
+    # ========================================================
+
+    result = frame.copy()
+
+
+    # --------------------------------------------------------
+    # Use soft mask instead of hard mask
+    # --------------------------------------------------------
+
+    alpha = mask.astype(
+        np.float32
+    ) / 255.0
+
+
+    # Make 3-channel alpha
+    alpha = cv2.merge(
+        [alpha, alpha, alpha]
+    )
+
+
+    # Background as float
+    background_float = background.astype(
+        np.float32
+    )
+
+
+    frame_float = frame.astype(
+        np.float32
+    )
+
+
+    # --------------------------------------------------------
+    # Blend foreground and background
+    # --------------------------------------------------------
+
+    result_float = (
+        frame_float * (1 - alpha) +
+        background_float * alpha
+    )
+
+
+    result = np.clip(
+        result_float,
         0,
         255
     ).astype(np.uint8)
 
-    result = frame.copy()
 
-    # Replace red cloak with background
-    result[mask > 0] = background_display[mask > 0]
-
-
-    # -----------------------------------
+    # ========================================================
     # DISPLAY
-    # -----------------------------------
+    # ========================================================
 
     cv2.imshow(
         "Red Invisibility Cloak",
         result
     )
+
 
     cv2.imshow(
         "Red Cloak Mask",
@@ -178,9 +547,9 @@ while True:
     )
 
 
-    # -----------------------------------
+    # ========================================================
     # EXIT
-    # -----------------------------------
+    # ========================================================
 
     key = cv2.waitKey(1) & 0xFF
 
@@ -188,9 +557,10 @@ while True:
         break
 
 
-# -----------------------------------
+# ============================================================
 # CLEANUP
-# -----------------------------------
+# ============================================================
 
 cap.release()
+
 cv2.destroyAllWindows()

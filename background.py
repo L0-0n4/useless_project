@@ -1,122 +1,96 @@
 import cv2
 import numpy as np
 
-# -----------------------------
-# CAMERA SETUP
-# -----------------------------
 
-cap = cv2.VideoCapture(0)
+class BackgroundModel:
+    """
+    Continuously learns the scene background.
 
-if not cap.isOpened():
-    print("Error: Could not open webcam")
-    exit()
+    During warm-up, the background is built from incoming frames.
+    After warm-up, it adapts slowly only where the cloak mask is false.
+    """
 
+    def __init__(self, warmup_frames=75, learning_rate=0.05):
+        self.background = None
+        self.warmup_frames = warmup_frames
+        self.learning_rate = learning_rate
+        self.frame_count = 0
+        self.ready = False
 
-# -----------------------------
-# BACKGROUND BUFFER
-# -----------------------------
+    def update(self, frame, cloak_mask=None):
+        """
+        Update the background model.
 
-background = None
+        frame:
+            Current BGR camera frame.
 
-# EMA learning rate
-# Smaller = slower, more stable background
-alpha = 0.05
+        cloak_mask:
+            Binary mask where 255 = cloak.
+            During warm-up this can be None.
+        """
 
+        # First frame initializes the model.
+        if self.background is None:
+            self.background = frame.astype(np.float32)
+            self.frame_count = 1
+            return self.get_background(), False
 
-# -----------------------------
-# MAIN LOOP
-# -----------------------------
+        # ---------------------------------------
+        # Automatic warm-up
+        # ---------------------------------------
+        if not self.ready:
 
-while True:
+            self.background = (
+                0.90 * self.background
+                + 0.10 * frame.astype(np.float32)
+            )
 
-    ret, frame = cap.read()
+            self.frame_count += 1
 
-    if not ret:
-        print("Error: Could not read frame")
-        break
+            if self.frame_count >= self.warmup_frames:
+                self.ready = True
 
-    # Mirror camera
-    frame = cv2.flip(frame, 1)
+            return self.get_background(), self.ready
 
-    # Convert frame to float32
-    current = frame.astype(np.float32)
+        # ---------------------------------------
+        # Continuous background learning
+        # ---------------------------------------
 
+        current = frame.astype(np.float32)
 
-    # -----------------------------
-    # INITIALIZE BACKGROUND
-    # -----------------------------
+        if cloak_mask is None:
+            return self.get_background(), True
 
-    if background is None:
+        # Only update pixels that are NOT cloak.
+        non_cloak = cloak_mask == 0
 
-        background = current.copy()
-
-        print("Background initialized automatically.")
-
-
-    # -----------------------------
-    # TEMPORARY MASK
-    # -----------------------------
-    #
-    # Step 3 will replace this with
-    # the actual cloak-color mask.
-    #
-    # For now, there is no cloak.
-    #
-
-    mask = np.zeros(frame.shape[:2], dtype=np.uint8)
-
-
-    # -----------------------------
-    # UPDATE BACKGROUND
-    # -----------------------------
-
-    if background is not None:
-
-        # Pixels where there is NO cloak
-        non_cloak = mask == 0
-
-        background[non_cloak] = (
-            (1 - alpha) * background[non_cloak]
-            + alpha * current[non_cloak]
+        self.background[non_cloak] = (
+            (1.0 - self.learning_rate)
+            * self.background[non_cloak]
+            + self.learning_rate
+            * current[non_cloak]
         )
 
+        return self.get_background(), True
 
-    # -----------------------------
-    # CONVERT BACK TO IMAGE
-    # -----------------------------
+    def get_background(self):
+        """Return the background as an 8-bit image."""
 
-    background_display = np.clip(
-        background,
-        0,
-        255
-    ).astype(np.uint8)
+        if self.background is None:
+            return None
 
+        return np.clip(
+            self.background,
+            0,
+            255
+        ).astype(np.uint8)
 
-    # -----------------------------
-    # DISPLAY
-    # -----------------------------
+    def reset(self):
+        """Reset the background model."""
 
-    cv2.imshow("Live Camera", frame)
+        self.background = None
+        self.frame_count = 0
+        self.ready = False
 
-    cv2.imshow(
-        "Continuous Background",
-        background_display
-    )
-
-
-    # -----------------------------
-    # EXIT
-    # -----------------------------
-
-    key = cv2.waitKey(1) & 0xFF
-
-    if key == ord('q'):
-        break
-
-
-# -----------------------------
-# CLEANUP
-# -----------------------------
-
-cap.release()
-cv2.destroyAllWindows()
+    def is_ready(self):
+        return self.ready
