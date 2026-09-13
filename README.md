@@ -103,7 +103,7 @@ The workflow begins by capturing the background through the webcam. The system t
 
 ### Project Demo
 # Video
-https://github.com/user-attachments/assets/94a1866e-c518-4990-a37a-dfe98e59e255
+https://drive.google.com/drive/folders/1nyBbm5MPFVsr1p5qwH4DChGBEAFcnhCs?usp=sharing
 
 The video demonstrates the working prototype of the Cloak of Invisibility. The application opens through a magical-themed interface and accesses the webcam to capture the live scene. After the background is captured, the system detects the red cloak and replaces the detected area with the captured background, creating the illusion that the person wearing the cloak has disappeared. The video showcases the real-time invisibility effect running on the laptop.
 
